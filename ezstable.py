@@ -6,12 +6,9 @@ import pandas as pd
 import pickle
 import numpy as np
 
-
 class DraggableLine:
-    def __init__(self, line, other_line, window_shade):
+    def __init__(self, line):
         self.line = line
-        self.other_line = other_line
-        self.window_shade = window_shade
         self.press = None
         self.connections = []
         self.connections.append(line.figure.canvas.mpl_connect('button_press_event', self.on_press))
@@ -26,23 +23,25 @@ class DraggableLine:
         if not contains:
             return
 
-        self.press = (self.line.get_xdata()[0], self.other_line.get_xdata()[0], event.xdata)
+        self.press = self.line.get_xdata(), event.xdata
 
     def on_motion(self, event):
-        if event.inaxes != self.line.axes:
+        if self.press is None:
             return
 
-        dx = event.xdata - self.press[2]
-        new_line_xdata = [self.press[0] + dx]
-        new_other_line_xdata = [self.press[1] + dx]
-
-        self.line.set_xdata(new_line_xdata)
-        self.other_line.set_xdata(new_other_line_xdata)
-
+        line_xdata, eventpress_xdata = self.press
+        dx = event.xdata - eventpress_xdata
+        self.line.set_xdata(line_xdata + dx)
         self.line.figure.canvas.draw()
 
     def on_release(self, event):
         self.press = None
+        self.line.figure.canvas.draw()
+
+    def disconnect(self):
+        if self.line is not None and self.line.figure is not None and self.line.figure.canvas is not None:
+            for connection in self.connections:
+                self.line.figure.canvas.mpl_disconnect(connection)
 
 
 class Application(tk.Tk):
@@ -54,9 +53,9 @@ class Application(tk.Tk):
         self.window_size = 45
         self.window_start = None
         self.window_end = None
-        self.window_shade = None
         self.draggable_start = None
         self.draggable_end = None
+        self.ax = None
 
         # Create the dropdowns
         self.key_var = tk.StringVar(self)
@@ -88,29 +87,17 @@ class Application(tk.Tk):
     def show_window(self):
         if self.window_visible:
             if self.draggable_start is not None:
-                self.draggable_start.line.figure.canvas.mpl_disconnect(self.draggable_start.connections[0])
-                self.draggable_start.line.figure.canvas.mpl_disconnect(self.draggable_start.connections[1])
-                self.draggable_start.line.figure.canvas.mpl_disconnect(self.draggable_start.connections[2])
-                self.draggable_end.line.figure.canvas.mpl_disconnect(self.draggable_end.connections[0])
-                self.draggable_end.line.figure.canvas.mpl_disconnect(self.draggable_end.connections[1])
-                self.draggable_end.line.figure.canvas.mpl_disconnect(self.draggable_end.connections[2])
+                self.draggable_start.disconnect()
+                self.draggable_end.disconnect()
             if self.window_start is not None:
                 self.window_start.remove()
             if self.window_end is not None:
                 self.window_end.remove()
-            if self.window_shade is not None:
-                self.window_shade.remove()
 
         self.window_start = self.ax.axvline(x=0, color='r')
         self.window_end = self.ax.axvline(x=self.window_size, color='r')
-
-        x = np.array([self.window_start.get_xdata()[0], self.window_end.get_xdata()[0]])
-        y = np.array([self.ax.get_ylim()[0], self.ax.get_ylim()[1]])
-        self.window_shade = self.ax.fill_between(x, y, alpha=0.3, color='gray')
-
-        self.draggable_start = DraggableLine(self.window_start, self.window_end, self.window_shade)
-        self.draggable_end = DraggableLine(self.window_end, self.window_start, self.window_shade)
-
+        self.draggable_start = DraggableLine(self.window_start)
+        self.draggable_end = DraggableLine(self.window_end)
         self.canvas.draw()
         self.window_visible = True
 
@@ -158,21 +145,23 @@ class Application(tk.Tk):
             except ValueError:
                 row_idx = 0
 
+            # Disconnect draggable lines and clear figure and axes if lines exist
             if self.draggable_start is not None:
-                self.draggable_start.line.figure.canvas.mpl_disconnect(self.draggable_start.connections[0])
-                self.draggable_start.line.figure.canvas.mpl_disconnect(self.draggable_start.connections[1])
-                self.draggable_start.line.figure.canvas.mpl_disconnect(self.draggable_start.connections[2])
-                self.draggable_end.line.figure.canvas.mpl_disconnect(self.draggable_end.connections[0])
-                self.draggable_end.line.figure.canvas.mpl_disconnect(self.draggable_end.connections[1])
-                self.draggable_end.line.figure.canvas.mpl_disconnect(self.draggable_end.connections[2])
-                self.figure.clear()
+                self.draggable_start.disconnect()
+                self.draggable_end.disconnect()
+            if self.ax is not None:
+                self.ax.clear()
+            else:
+                self.ax = self.figure.subplots()
 
-            self.ax = self.figure.subplots()
             self.ax.plot(df[column].iloc[row_idx])
 
-            self.ax.set_xticks(np.arange(0, len(df[column].iloc[row_idx]), step=self.window_size))
+            # Adjust x-ticks and x-labels
+            self.ax.set_xticks(
+                np.arange(0, len(df[column].iloc[row_idx]), step=self.window_size))  # Adjust this as necessary
             self.ax.set_xlabel("Index")
 
+            # If window was previously visible, show it again
             if self.window_visible:
                 self.show_window()
 
