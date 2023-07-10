@@ -1,4 +1,4 @@
-<img src="https://github.com/mfkeles/EZLabel/assets/22876046/d2166987-5e88-476b-b9a7-b1e75f330ace" width="500">
+<img src="https://github.com/mfkeles/EZLabel/assets/22876046/9e785534-2176-4a25-b4a8-5c8be4636eff" width="500">   
 
 # EZLabel: Interactive Data Labeling Tool
 
