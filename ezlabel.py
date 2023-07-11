@@ -191,16 +191,24 @@ def update_figure(prev_clicks, next_clicks, selected_column, data, annotations, 
 @app.callback(
     Output('annotations', 'data'),
     [Input('figure', 'clickData'),
-     Input('load-button', 'n_clicks')],
+     Input('load-button', 'n_clicks'),
+     Input('upload-data', 'contents')],
     [State('annotations', 'data'),
      State('column-dropdown', 'value'),
      State('intermediate-data', 'data')])
-def update_annotations(clickData, n_clicks, annotations, selected_column, data):
+def update_annotations(clickData, load_n_clicks, contents, annotations, selected_column, data):
     ctx = dash.callback_context
 
+    if not ctx.triggered:
+        raise dash.exceptions.PreventUpdate
+
+    # if the callback was triggered by 'upload-data', clear annotations
+    if 'upload-data.contents' in [x['prop_id'] for x in ctx.triggered]:
+        return []
+
     # if the callback was triggered by 'load-button', load annotations
-    if ctx.triggered and 'load-button' in ctx.triggered[0]['prop_id']:
-        if n_clicks is None or data is None:
+    elif 'load-button.n_clicks' in [x['prop_id'] for x in ctx.triggered]:
+        if load_n_clicks is None or data is None:
             raise dash.exceptions.PreventUpdate
 
         # Load annotations
@@ -230,6 +238,7 @@ def update_annotations(clickData, n_clicks, annotations, selected_column, data):
 
     return annotations
 
+
 @app.callback(
     Output('save-confirm', 'children'),
     Input('save-button', 'n_clicks'),
@@ -245,6 +254,7 @@ def save_annotations(n_clicks, annotations, data):
         pickle.dump(annotations, f)
 
     return f'Successfully saved annotations for {filename}'
+
 
 
 if __name__ == '__main__':

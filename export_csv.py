@@ -9,17 +9,9 @@ def save_column_as_csv(data, column_name, output_folder):
         output_path = os.path.join(output_folder, f"{key}.csv")
         if column_name in df.columns:
             time_series = df[column_name].apply(pd.Series)
-            max_length = time_series.apply(len).max()
+            time_series = time_series.T
 
-            # Create time index with spacing of 1/30 seconds
-            time_index = pd.Index(range(max_length)) / 30
-
-            # Create a new dataframe with each column corresponding to a row and index as time
-            new_df = pd.DataFrame(index=time_index)
-            for i, series in enumerate(time_series):
-                new_df[i] = pd.Series(series)
-
-            new_df.to_csv(output_path)
+            time_series.to_csv(output_path,index=False)
         else:
             print(f"Column '{column_name}' does not exist in dataframe for key '{key}'")
 
