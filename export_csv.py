@@ -16,8 +16,8 @@ def save_column_as_csv(data, column_name, output_folder):
             print(f"Column '{column_name}' does not exist in dataframe for key '{key}'")
 
 # Example usage
-data = pd.read_pickle(r'Z:\mfk\basty-projects\bouts_dict.pkl')
+data = pd.read_pickle(r'Y:\DeepSleepPaperData\basty-daytime\tmp_results\predictions\ProboscisPumping\bouts_dict.pkl')
 column_name = "distance.origin-prob"
-output_folder = os.path.dirname(r"Z:\mfk\basty-projects\bouts_to_csv")
+output_folder = os.path.dirname(r"Y:\DeepSleepPaperData\basty-daytime\tmp_results\bouts_to_csv\ProboscisPumping")
 
 save_column_as_csv(data, column_name, output_folder)
